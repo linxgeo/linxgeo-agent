@@ -110,7 +110,9 @@ async function unbindAccount(baseUrl, agentId, agentToken, { platform }) {
 // —— 版本检查（任务包3 接真实升级）——
 async function checkVersion(baseUrl) {
   const platform = process.platform === 'darwin' ? 'darwin' : 'win32';
-  return getJson(baseUrl, `/api/agent/version?platform=${platform}`, { timeoutMs: 10000 });
+  // macOS 区分架构：arm64 / x64；Windows 统一 x64
+  const arch = process.arch === 'arm64' ? 'arm64' : 'x64';
+  return getJson(baseUrl, `/api/agent/version?platform=${platform}&arch=${arch}`, { timeoutMs: 10000 });
 }
 
 // —— 任务包2：拉取待执行任务（pending + 本机 interrupted）——

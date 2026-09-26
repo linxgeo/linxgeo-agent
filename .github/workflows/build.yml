@@ -22,8 +22,8 @@ jobs:
       - name: Install wine (for Windows cross-compile)
         run: |
           sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y wine64 wine32 i386 libnss3
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends wine64 wine32:i386 libnss3:i386
 
       - name: Update version from tag
         if: startsWith(github.ref, 'refs/tags/')
@@ -34,8 +34,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build Windows x64 NSIS
-        run: npx electron-builder --win nsis --x64
+      - name: Build Windows x64 NSIS (publish=never — release step handles it)
+        run: npx electron-builder --win nsis --x64 --publish never
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
@@ -66,8 +66,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build macOS Universal (x64 + arm64 in one dmg)
-        run: npx electron-builder --mac --universal
+      - name: Build macOS Universal (x64 + arm64 in one dmg, publish=never)
+        run: npx electron-builder --mac --universal --publish never
 
       - name: Upload macOS Universal artifact
         uses: actions/upload-artifact@v4
@@ -83,6 +83,8 @@ jobs:
     needs: [build-win, build-mac-universal]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -92,7 +94,7 @@ jobs:
       - name: List downloaded files
         run: find artifacts -type f | sort
 
-      - name: Create Release
+      - name: Create Release & Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref }}

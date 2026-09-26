@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+  <title>云擎发布助手</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== 首次引导（未绑定设备时显示）===== -->
+  <div id="wizard" class="wizard hidden">
+    <div class="wizard-card">
+      <div class="wizard-steps"><span id="wizardStepLabel">第 1 步 / 共 3 步</span></div>
+
+      <!-- 步骤1：登录平台账号 -->
+      <div id="wizardStep1" class="wizard-body">
+        <h1>登录云擎账号</h1>
+        <p class="lead">请登录您的云擎（LINX-IGN）平台账号，用于接收发布任务。<br />发布平台的账号授权在下一步完成。</p>
+        <div class="form">
+          <label>服务器地址</label>
+          <input id="wizBaseUrl" type="text" placeholder="https://linxgeo.com" />
+          <label>账号</label>
+          <input id="wizUsername" type="text" placeholder="手机号或用户名" autocomplete="username" />
+          <label>密码</label>
+          <input id="wizPassword" type="password" placeholder="请输入密码" autocomplete="current-password" />
+          <div id="wizLoginError" class="form-error hidden"></div>
+          <button id="wizLoginBtn" class="btn-primary btn-xl" style="margin-top:8px;">登录并绑定本机</button>
+        </div>
+      </div>
+
+      <!-- 步骤2：添加发布账号 -->
+      <div id="wizardStep2" class="wizard-body hidden">
+        <h1>添加发布账号</h1>
+        <p class="lead">选择一个发布平台，在弹出的窗口中使用您的平台账号登录。<br />登录完成后会自动保存，可以添加多个平台。</p>
+        <div id="wizPlatformGrid" class="platform-grid"></div>
+        <div id="wizAddedList" class="added-list"></div>
+        <div class="wizard-actions">
+          <button id="wizNextBtn" class="btn-primary btn-xl">完成，开始使用</button>
+          <a id="wizSkipBtn" class="link-plain">跳过，稍后在「发布账号」页添加</a>
+        </div>
+      </div>
+
+      <!-- 步骤3：完成 -->
+      <div id="wizardStep3" class="wizard-body hidden">
+        <div class="done-icon">✓</div>
+        <h1>一切就绪！</h1>
+        <p class="lead">本机已绑定，助手会在后台自动接收发布任务。<br />关闭窗口不会退出程序，可通过右下角托盘图标随时打开。</p>
+        <button id="wizFinishBtn" class="btn-primary btn-xl">开始使用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 主界面 ===== -->
+  <div id="app" class="app hidden">
+    <header class="topbar">
+      <div class="brand">
+        <span id="onlineDot" class="dot dot-offline" title="离线"></span>
+        <span class="brand-name">云擎发布助手</span>
+        <span id="onlineText" class="brand-status">连接中…</span>
+      </div>
+      <span id="versionTag" class="version-tag">v1.0.0</span>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="accounts">发布账号</button>
+      <button class="tab" data-tab="records">发布记录</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </nav>
+
+    <main class="content">
+      <!-- 发布账号 -->
+      <section id="tab-accounts" class="tab-panel">
+        <div class="panel-head">
+          <button id="addAccountBtn" class="btn-primary">＋ 添加发布账号</button>
+          <button id="checkAllBtn" class="btn-ghost">一键检测</button>
+        </div>
+        <div id="accountList" class="account-list"></div>
+        <div id="accountEmpty" class="empty hidden">
+          <div class="empty-icon">🔗</div>
+          <p>还没有授权账号</p>
+          <p class="empty-sub">点击「添加发布账号」，在弹出的窗口中登录您的平台账号即可</p>
+        </div>
+      </section>
+
+      <!-- 发布记录 -->
+      <section id="tab-records" class="tab-panel hidden">
+        <div id="records-busy" class="banner hidden">⏳ 正在执行发布任务（真实浏览器发布中，请勿退出）…</div>
+        <div id="records-list"></div>
+        <div id="records-empty" class="empty">
+          <div class="empty-icon">📋</div>
+          <p>暂无发布记录</p>
+          <p class="empty-sub">云端下发发布任务后，将每 10 秒自动拉取并在此显示执行结果</p>
+        </div>
+      </section>
+
+      <!-- 设置 -->
+      <section id="tab-settings" class="tab-panel hidden">
+        <div class="settings-card">
+          <h3>设备信息</h3>
+          <div id="deviceInfo" class="kv-list"></div>
+        </div>
+        <div class="settings-card">
+          <h3>常规</h3>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">开机自启</div>
+              <div class="setting-sub">开机后自动在后台运行，接收发布任务</div>
+            </div>
+            <label class="switch"><input id="autoLaunchToggle" type="checkbox" /><span class="slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">服务器地址</div>
+              <div class="setting-sub">云擎平台服务地址（一般无需修改）</div>
+            </div>
+            <div class="inline-form">
+              <input id="baseUrlInput" type="text" />
+              <button id="saveBaseUrlBtn" class="btn-ghost">保存</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">发布节流</div>
+              <div class="setting-sub">为保护账号安全：单账号每小时最多 1 篇、每天最多 2 篇</div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <h3>维护</h3>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">检查更新</div>
+              <div class="setting-sub" id="updateStatusText">当前为最新检查状态：未检查</div>
+            </div>
+            <button id="checkUpdateBtn" class="btn-ghost">检查更新</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">导出日志</div>
+              <div class="setting-sub">导出运行日志，便于问题排查</div>
+            </div>
+            <button id="exportLogsBtn" class="btn-ghost">导出日志</button>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-title">解除设备绑定</div>
+              <div class="setting-sub">解绑后本机不再接收任务，本地登录态保留</div>
+            </div>
+            <button id="logoutBtn" class="btn-danger">解绑</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

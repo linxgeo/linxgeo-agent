@@ -1,0 +1,72 @@
+{
+  "name": "linxgeo-agent",
+  "version": "1.0.0",
+  "description": "LINX-IGN 云擎发布助手 —— 本地授权发布 Agent（凭证只存本地，绝不上传云端）",
+  "main": "src/main/index.js",
+  "author": "LINX-IGN",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "gen:icons": "node scripts/gen-icons.js",
+    "dist:win": "electron-builder --win nsis",
+    "dist:win:portable": "electron-builder --win portable",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:all": "npm run dist:mac && npm run dist:win:portable"
+  },
+  "devDependencies": {
+    "electron": "^31.7.0",
+    "electron-builder": "^24.13.3",
+    "ws": "^8.21.3"
+  },
+  "build": {
+    "appId": "com.linxgeo.agent",
+    "productName": "云擎发布助手",
+    "copyright": "Copyright © 2026 LINX-IGN",
+    "directories": {
+      "output": "dist"
+    },
+    "executableName": "linxgeo-agent",
+    "files": [
+      "src/**/*",
+      "build/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis",  "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "portable": {
+      "artifactName": "linxgeo-agent-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false,
+      "language": "2052",
+      "installerLanguages": [
+        "zh-CN"
+      ],
+      "artifactName": "linxgeo-agent-setup-${version}.${ext}",
+      "shortcutName": "云擎发布助手"
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.productivity",
+      "artifactName": "linxgeo-agent-${version}-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}

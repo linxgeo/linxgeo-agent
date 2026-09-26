@@ -1,0 +1,104 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ============================================================
+  # Windows x64 NSIS 安装包（Linux + wine 跨平台编译）
+  # ============================================================
+  build-win:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install wine (for Windows cross-compile)
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y wine64 wine32 i386 libnss3
+
+      - name: Update version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER=${GITHUB_REF#refs/tags/v}
+          npm version $VER --allow-same-version --no-git-tag-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows x64 NSIS
+        run: npx electron-builder --win nsis --x64
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: dist/*.exe
+          retention-days: 5
+
+  # ============================================================
+  # macOS universal dmg（含 x64 + arm64，macOS-14 ARM 原生构建）
+  # ============================================================
+  build-mac-universal:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Update version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER=${GITHUB_REF#refs/tags/v}
+          npm version $VER --allow-same-version --no-git-tag-version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS Universal (x64 + arm64 in one dmg)
+        run: npx electron-builder --mac --universal
+
+      - name: Upload macOS Universal artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-universal-dmg
+          path: dist/*.dmg
+          retention-days: 5
+
+  # ============================================================
+  # 发布到 GitHub Releases（所有平台构建完成后执行）
+  # ============================================================
+  release:
+    needs: [build-win, build-mac-universal]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: find artifacts -type f | sort
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref }}
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

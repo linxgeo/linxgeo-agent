@@ -7,10 +7,10 @@ on:
 
 jobs:
   # ============================================================
-  # Windows x64 NSIS 安装包（Linux + wine 跨平台编译）
+  # Windows x64 NSIS 安装包（原生 windows-latest runner，无需 Wine）
   # ============================================================
   build-win:
-    runs-on: ubuntu-22.04
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -19,16 +19,10 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install wine (for Windows cross-compile)
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends wine64 wine32:i386 libnss3:i386
-
       - name: Update version from tag
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          VER=${GITHUB_REF#refs/tags/v}
+          $VER = "${{ github.ref }}" -replace 'refs/tags/v',''
           npm version $VER --allow-same-version --no-git-tag-version
 
       - name: Install dependencies
